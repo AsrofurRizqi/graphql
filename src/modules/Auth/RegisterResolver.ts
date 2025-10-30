@@ -1,5 +1,9 @@
 import { Resolver, Arg, Mutation } from 'type-graphql';
 import { User } from '../../entity/user.entity';
+import { sendEmail } from '../../utils/email';
+import * as jwt from 'jsonwebtoken';
+
+const secret = process.env.JWT_TOKEN || 'default';
 
 @Resolver(User)
 export class RegisterResolver {
@@ -23,6 +27,10 @@ export class RegisterResolver {
             email,
             password: hashedPassword
         }).save();
+
+        const verifyToken = jwt.sign({ id: user.id }, secret, { expiresIn: '6h' });
+        const verificationLink = `http://localhost:3000/verify-email?token=${verifyToken}`;
+        await sendEmail(email, 'Verify your email', `Click this link to verify your email: ${verificationLink}`);
 
         return user;
     }

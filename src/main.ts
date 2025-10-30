@@ -11,6 +11,10 @@ import { RegisterResolver } from './modules/Auth/RegisterResolver';
 import { LoginResolver } from './modules/Auth/LoginResolver';
 import { ClassResolver } from './modules/Class/ClassResolver';
 
+import { verifyEmailToken } from './utils/verify';
+
+const port = process.env.PORT || 4000;
+
 const main = async () => {
   const schema = await buildSchema({
     resolvers: [
@@ -24,15 +28,26 @@ const main = async () => {
   await createConnection();
   const server = new ApolloServer({
      schema,
-     context: ({ req, res }) => ({ req, res })
+     context: ({ req, res }) => ({ req, res }),
     });
   await server.start();
   const app = Express();
   server.applyMiddleware({ app });
-  app.listen({ port: 4000 }, () => {
-    console.log(`Graphql server ready at http://localhost:4000${server.graphqlPath}`);
-  }
-  );
+
+  app.get('/verify-email', (req, res) => {
+    const token = req.query.token as string;
+    verifyEmailToken(token).then((success) => {
+      if (success) {
+        res.send('Email verified successfully!');
+      } else {
+        res.send('Invalid or expired token.');
+      }
+    });
+  });
+  
+  app.listen({ port }, () => {
+    console.log(`Graphql server ready at http://localhost:${port}${server.graphqlPath}`);
+  });
 };
 
 main().catch((error) => {
